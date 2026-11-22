@@ -121,12 +121,7 @@ When a subscribed team document changes via the admin API or direct `mongosh` up
 - Unread notifications show a dot badge; the count updates in real time.
 - **Cross-tab sync**: `BroadcastChannel` (`ipl-notifications`) keeps read state consistent across browser tabs.
 
-### Admin Team Editing
-
-1. Log in as admin (`adminuser` / `AdminPass123`).
-2. Go to `/admin` — the **Team Editor** allows PATCH updates to any team.
-3. Changes go directly to MongoDB; the Change Stream pipeline automatically generates grouped notifications for all eligible subscribers.
-4. Admins can also use `mongosh` for direct updates — the Change Stream pipeline handles both paths identically.
+### 
 
 ### Live Match Scorecard
 
