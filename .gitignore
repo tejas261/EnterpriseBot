@@ -16,6 +16,7 @@ test-results/
 # Tests and test tooling
 tests/
 vitest.config.ts
+.vscode
 
 # Agent/tooling artifacts
 AGENTS.md

@@ -76,6 +76,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         <div className="relative">
           <Input
             id="password"
+            placeholder="********"
             type={showPassword ? "text" : "password"}
             autoComplete={mode === "login" ? "current-password" : "new-password"}
             aria-invalid={Boolean(errors.password)}
