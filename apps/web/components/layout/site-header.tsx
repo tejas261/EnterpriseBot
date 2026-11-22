@@ -104,11 +104,14 @@ export function SiteHeader({ user }: { user: AuthUser }) {
               </Link>
             </Button>
           ) : null}
-          <div className="flex items-center gap-2 rounded-full border bg-card py-1 pl-1 pr-3">
+          <div id="notifications-trigger" className="lg:hidden" />
+          <div className="flex items-center gap-2 rounded-full border bg-card py-1 pl-1 pr-1 sm:pr-3">
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold uppercase text-primary">
               {user.username.slice(0, 1)}
             </span>
-            <span className="max-w-[120px] truncate text-xs font-medium">{user.username}</span>
+            <span className="hidden max-w-[120px] truncate text-xs font-medium sm:block">
+              {user.username}
+            </span>
           </div>
           <Button
             variant="ghost"

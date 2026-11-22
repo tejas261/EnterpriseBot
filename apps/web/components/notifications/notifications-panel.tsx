@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { formatDistanceToNow } from "date-fns";
-import { BellOff, Bell, CheckCheck, Loader2, RefreshCw } from "lucide-react";
+import { BellOff, Bell, CheckCheck, Loader2, RefreshCw, X } from "lucide-react";
 import { toast } from "sonner";
 import type { NotificationDto } from "@ipl/shared";
 import { useNotificationStream } from "@/hooks/use-notification-stream";
 import { ApiClientError, api } from "@/lib/api-client";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -21,12 +23,13 @@ interface NotificationsResponse {
 
 const PAGE_SIZE = 20;
 
-function NotificationCard({ item }: { item: NotificationDto }) {
+function NotificationCard({ item, onMarkRead }: { item: NotificationDto; onMarkRead: (id: string) => void }) {
   return (
     <article
-      className={`rounded-lg border p-3 transition-colors ${
+      onClick={item.read ? undefined : () => onMarkRead(item.id)}
+      className={`group rounded-lg border p-3 transition-colors ${
         item.read ? "bg-card" : "border-primary/20 bg-primary/[0.035]"
-      }`}
+      } ${item.read ? "" : "cursor-pointer"}`}
     >
       <div className="flex items-start gap-2.5">
         <TeamBadge short={item.teamShort} size="sm" className="mt-0.5" />
@@ -84,7 +87,11 @@ export function NotificationsPanel({
   const [markingAll, setMarkingAll] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const [triggerHost, setTriggerHost] = useState<HTMLElement | null>(null);
   const channelRef = useRef<BroadcastChannel | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   const refetch = useCallback(async () => {
     try {
@@ -129,6 +136,35 @@ export function NotificationsPanel({
     };
   }, []);
 
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- header portal host exists after mount
+    setTriggerHost(document.getElementById("notifications-trigger"));
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    closeButtonRef.current?.focus();
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    const closeOnDesktop = (event: MediaQueryListEvent) => {
+      if (event.matches) setOpen(false);
+    };
+    desktop.addEventListener("change", closeOnDesktop);
+    return () => desktop.removeEventListener("change", closeOnDesktop);
+  }, []);
+
   const markAllRead = async () => {
     setMarkingAll(true);
     setError(null);
@@ -148,6 +184,21 @@ export function NotificationsPanel({
       toast.error(message);
     } finally {
       setMarkingAll(false);
+    }
+  };
+
+  const markRead = async (id: string) => {
+    setError(null);
+    try {
+      await api.patch(`/api/notifications/${id}/read`);
+      setItems((previous) =>
+        previous.map((item) => (item.id === id ? { ...item, read: true, readAt: new Date().toISOString() } : item)),
+      );
+      setUnreadCount((count) => Math.max(0, count - (items.find((item) => item.id === id)?.read ? 0 : 1)));
+    } catch (cause) {
+      const message = cause instanceof ApiClientError ? cause.message : "Could not mark notification read";
+      setError(message);
+      toast.error(message);
     }
   };
 
@@ -174,29 +225,87 @@ export function NotificationsPanel({
 
   const visible = filter === "unread" ? items.filter((item) => !item.read) : items;
 
+  const trigger = (
+    <Button
+      ref={triggerRef}
+      type="button"
+      variant="ghost"
+      size="icon"
+      className="relative"
+      onClick={() => setOpen((value) => !value)}
+      aria-expanded={open}
+      aria-controls="notifications-panel"
+      aria-label={unreadCount > 0 ? `Notifications (${unreadCount} unread)` : "Notifications"}
+    >
+      <Bell className="h-4 w-4" aria-hidden="true" />
+      {unreadCount > 0 ? (
+        <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold tabular-nums text-primary-foreground">
+          {unreadCount > 99 ? "99+" : unreadCount}
+        </span>
+      ) : null}
+    </Button>
+  );
+
   return (
-    <Card className="flex flex-col lg:sticky lg:top-20 lg:max-h-[calc(100vh-6.5rem)]">
-      <div className="flex items-center gap-2 border-b px-4 py-3">
-        <Bell className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-        <h2 className="text-sm font-semibold">Notifications</h2>
-        {unreadCount > 0 ? (
-          <Badge className="px-1.5 py-0 text-[10px] tabular-nums">{unreadCount} new</Badge>
-        ) : null}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="ml-auto h-7 px-2 text-[11px]"
-          onClick={markAllRead}
-          disabled={unreadCount === 0 || markingAll}
-        >
-          {markingAll ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <CheckCheck className="h-3.5 w-3.5" />
-          )}
-          Mark all read
-        </Button>
-      </div>
+    <>
+      {triggerHost ? createPortal(trigger, triggerHost) : null}
+
+      {open ? (
+        <div
+          className="fixed inset-0 z-30 bg-foreground/20 lg:hidden"
+          onClick={() => setOpen(false)}
+          aria-hidden="true"
+        />
+      ) : null}
+
+      <Card
+        id="notifications-panel"
+        role={open ? "dialog" : undefined}
+        aria-modal={open || undefined}
+        aria-labelledby="notifications-heading"
+        className={cn(
+          "flex-col",
+          open
+            ? "fixed left-4 right-4 top-16 z-50 flex max-h-[calc(100vh-5rem)] sm:left-auto sm:w-[380px]"
+            : "hidden",
+          "lg:sticky lg:top-20 lg:z-auto lg:flex lg:max-h-[calc(100vh-6.5rem)] lg:inset-x-auto lg:w-auto",
+        )}
+      >
+        <div className="flex items-center gap-2 border-b px-4 py-3">
+          <Bell className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+          <h2 id="notifications-heading" className="text-sm font-semibold">
+            Notifications
+          </h2>
+          {unreadCount > 0 ? (
+            <Badge className="px-1.5 py-0 text-[10px] tabular-nums">{unreadCount} new</Badge>
+          ) : null}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-auto h-7 px-2 text-[11px]"
+            onClick={markAllRead}
+            disabled={unreadCount === 0 || markingAll}
+            aria-label="Mark all notifications as read"
+          >
+            {markingAll ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <CheckCheck className="h-3.5 w-3.5" />
+            )}
+            <span className="hidden sm:inline">Mark all read</span>
+          </Button>
+          <Button
+            ref={closeButtonRef}
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 lg:hidden"
+            onClick={() => setOpen(false)}
+            aria-label="Close notifications"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
 
       <div className="flex items-center justify-between gap-2 px-4 pt-3">
         <Tabs value={filter} onValueChange={(value) => setFilter(value as "all" | "unread")}>
@@ -239,7 +348,7 @@ export function NotificationsPanel({
             </p>
           </div>
         ) : (
-          visible.map((item) => <NotificationCard key={item.id} item={item} />)
+          visible.map((item) => <NotificationCard key={item.id} item={item} onMarkRead={markRead} />)
         )}
 
         {error ? (
@@ -261,6 +370,7 @@ export function NotificationsPanel({
 
         {loadingMore ? <p className="px-2 text-[11px] text-muted-foreground">Loading older…</p> : null}
       </div>
-    </Card>
+      </Card>
+    </>
   );
 }

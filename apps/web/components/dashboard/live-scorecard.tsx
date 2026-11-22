@@ -1,233 +1,297 @@
 "use client";
 
-import { Radio, WifiOff } from "lucide-react";
+import { Radio } from "lucide-react";
 import {
   formatRunRate,
   oversToBalls,
   type BallResult,
   type MatchScore,
 } from "@ipl/shared";
-import { useLiveMatch } from "@/hooks/use-live-match";
-import { TeamBadge } from "@/components/teams/team-badge";
-import { Badge } from "@/components/ui/badge";
+import { useLiveMatch, type MatchConnectionStatus } from "@/hooks/use-live-match";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const BALL_STYLES: Record<BallResult, string> = {
-  "•": "bg-muted text-muted-foreground",
-  "1": "bg-secondary text-secondary-foreground",
-  "2": "bg-secondary text-secondary-foreground",
-  "3": "bg-secondary text-secondary-foreground",
+  "•": "bg-[#eceef2] text-[#3f4652]",
+  "1": "bg-[#eceef2] text-[#3f4652]",
+  "2": "bg-[#eceef2] text-[#3f4652]",
+  "3": "bg-[#eceef2] text-[#3f4652]",
   "4": "bg-primary text-primary-foreground",
   "6": "bg-primary text-primary-foreground",
-  W: "bg-destructive text-destructive-foreground",
-  wd: "bg-warning/15 text-warning",
+  W: "bg-[#d32f2f] text-white",
+  wd: "bg-[#f4e7cf] text-[#8a6a2f]",
 };
 
-function ConnectionPill({ status }: { status: ReturnType<typeof useLiveMatch>["status"] }) {
-  if (status === "live") {
-    return (
-      <Badge variant="live">
-        <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-live" />
-        Live
-      </Badge>
-    );
-  }
-  if (status === "reconnecting") {
-    return (
-      <Badge variant="warning">
-        <WifiOff className="h-3 w-3" />
-        Reconnecting…
-      </Badge>
-    );
-  }
+function overRuns(balls: BallResult[]): number {
+  return balls.reduce(
+    (sum, ball) => sum + (ball === "W" || ball === "•" ? 0 : ball === "wd" ? 1 : Number(ball)),
+    0,
+  );
+}
+
+function FeedStatus({ status }: { status: MatchConnectionStatus }) {
+  const dot =
+    status === "live"
+      ? "bg-[#22c55e]"
+      : status === "reconnecting"
+        ? "bg-warning"
+        : "bg-white/40";
+  const label =
+    status === "live" ? "Feed live" : status === "reconnecting" ? "Reconnecting…" : "Connecting…";
+
   return (
-    <Badge variant="secondary">
-      <Radio className="h-3 w-3" />
-      Connecting…
-    </Badge>
+    <span className="flex items-center gap-2 text-[13px] text-white/60">
+      <span className={`h-2 w-2 rounded-full ${dot}`} aria-hidden="true" />
+      {label}
+    </span>
   );
 }
 
 function Scorecard({
   match,
   status,
-  logoUrl,
 }: {
   match: MatchScore;
-  status: ReturnType<typeof useLiveMatch>["status"];
-  logoUrl?: string | null;
+  status: MatchConnectionStatus;
 }) {
   const ballsBowled = oversToBalls(match.score.overs);
   const progress = Math.min(100, (ballsBowled / (match.score.totalOvers * 6)) * 100);
-  const batters = match.batters;
+  const overNumber = Math.floor(ballsBowled / 6) + 1;
+  const runsThisOver = overRuns(match.currentOverBalls);
+  const economy =
+    match.bowler && match.bowler.overs !== "0.0"
+      ? (match.bowler.runsConceded / (oversToBalls(match.bowler.overs) / 6)).toFixed(1)
+      : "–";
 
   return (
     <Card className="overflow-hidden">
-      <div className="flex flex-wrap items-center gap-2 border-b px-5 py-3.5">
-        <ConnectionPill status={status} />
-        <span className="ml-auto text-xs text-muted-foreground">{match.venue}</span>
-      </div>
-
-      <div className="grid gap-6 p-5 pb-4 md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
-        <div>
-          <div className="flex items-center gap-3">
-            <TeamBadge short={match.battingTeam.short} size="lg" logoUrl={logoUrl} />
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">{match.battingTeam.name}</p>
-              <p className="text-xs text-muted-foreground">
-                Innings {match.innings} · vs {match.bowlingTeam.short}
-              </p>
-            </div>
+      <div className="bg-[#1e2632] px-6 pb-4 pt-6 text-white">
+        <div className="flex items-center gap-3">
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#d32f2f] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-white">
+            <span className="h-1.5 w-1.5 rounded-full bg-white" aria-hidden="true" />
+            Live
+          </span>
+          <p className="min-w-0 flex-1 truncate text-[15px] text-white/75">
+            {match.battingTeam.name} <span className="text-white/40">v</span>{" "}
+            {match.bowlingTeam.name}
+          </p>
+          <div className="shrink-0">
+            <FeedStatus status={status} />
           </div>
+        </div>
 
-          <div className="mt-4 flex flex-wrap items-end gap-x-4 gap-y-1">
-            <p className="text-5xl font-semibold leading-none tracking-tight tabular-nums">
+        <div className="mt-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+          <div className="flex items-baseline gap-4">
+            <span className="text-lg font-semibold text-white/55">{match.battingTeam.short}</span>
+            <p className="text-[56px] font-semibold leading-none tracking-tight tabular-nums">
               {match.score.runs}
-              <span className="text-muted-foreground">/</span>
+              <span className="text-white/90">/</span>
               {match.score.wickets}
             </p>
-            <div className="pb-1">
-              <p className="text-sm font-medium tabular-nums">
-                {match.score.overs}
-                <span className="text-muted-foreground"> / {match.score.totalOvers} ov</span>
+          </div>
+
+          <div className="flex items-end gap-8 pb-0.5 text-right">
+            <div>
+              <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-white/50">
+                Overs
               </p>
-              <p className="text-xs text-muted-foreground">
-                CRR {formatRunRate(match.score.runs, ballsBowled)}
-                {match.innings === 2 && match.target ? ` · Target ${match.target}` : ""}
+              <p className="mt-1.5 text-2xl font-semibold leading-none tabular-nums">
+                {match.score.overs}
+                <span className="text-lg font-medium leading-none text-white/45">
+                  {" "}
+                  / {match.score.totalOvers}
+                </span>
               </p>
             </div>
-          </div>
-
-          <div
-            className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-muted"
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={match.score.totalOvers * 6}
-            aria-valuenow={ballsBowled}
-            aria-label="Overs bowled"
-          >
-            <div
-              className="h-full rounded-full bg-primary transition-[width] duration-500"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-
-          <p className="sr-only" aria-live="polite">
-            {match.battingTeam.short} {match.score.runs} for {match.score.wickets} after{" "}
-            {match.score.overs} overs
-          </p>
-
-          <div className="mt-5">
-            <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-              This over
-            </p>
-            <div className="flex flex-wrap gap-1.5" aria-label="Balls in the current over">
-              {match.currentOverBalls.length === 0 ? (
-                <span className="text-xs text-muted-foreground">
-                  {oversToBalls(match.score.overs) > 0 ? "Bowler is getting ready…" : "New over"}
-                </span>
-              ) : (
-                match.currentOverBalls.map((ball, index) => (
-                  <span
-                    key={`${index}-${ball}`}
-                    className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-semibold ${BALL_STYLES[ball]}`}
-                  >
-                    {ball}
-                  </span>
-                ))
-              )}
+            <div>
+              <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-white/50">
+                Run rate
+              </p>
+              <p className="mt-1.5 text-2xl font-semibold leading-none tabular-nums">
+                {formatRunRate(match.score.runs, ballsBowled)}
+              </p>
             </div>
           </div>
         </div>
 
-        <div className="flex flex-col gap-3">
-          <div className="rounded-lg border bg-background/60">
-            <table className="w-full text-xs">
-              <caption className="sr-only">Batting card</caption>
-              <thead>
-                <tr className="border-b text-[10px] uppercase tracking-wider text-muted-foreground">
-                  <th scope="col" className="px-3 py-2 text-left font-medium">
-                    Batter
-                  </th>
-                  <th scope="col" className="px-2 py-2 text-right font-medium">
-                    R
-                  </th>
-                  <th scope="col" className="px-2 py-2 text-right font-medium">
-                    B
-                  </th>
-                  <th scope="col" className="px-3 py-2 text-right font-medium">
-                    SR
-                  </th>
+        <div
+          className="mt-10 h-2 w-full overflow-hidden rounded-full bg-white/20"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={match.score.totalOvers * 6}
+          aria-valuenow={ballsBowled}
+          aria-label="Overs bowled"
+        >
+          <div
+            className="h-full rounded-full bg-primary transition-[width] duration-500"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+
+        <p className="sr-only" aria-live="polite">
+          {match.battingTeam.short} {match.score.runs} for {match.score.wickets} after{" "}
+          {match.score.overs} overs
+        </p>
+      </div>
+
+      <div className="grid md:grid-cols-[minmax(0,0.95fr)_minmax(0,1fr)]">
+        <div className="px-6 py-5">
+          <table className="w-full text-sm">
+            <caption className="sr-only">Batting card</caption>
+            <colgroup>
+              <col />
+              <col className="w-14" />
+              <col className="w-12" />
+              <col className="w-14" />
+            </colgroup>
+            <thead>
+              <tr className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                <th scope="col" className="pb-2 text-left font-medium">
+                  Batter
+                </th>
+                <th scope="col" className="pb-2 text-right font-medium">
+                  R
+                </th>
+                <th scope="col" className="pb-2 text-right font-medium">
+                  B
+                </th>
+                <th scope="col" className="pb-2 text-right font-medium">
+                  SR
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {match.batters.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="py-1.5 text-muted-foreground">
+                    No active batters
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {batters.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="px-3 py-3 text-muted-foreground">
-                      No active batters
-                    </td>
-                  </tr>
-                ) : (
-                  batters.map((batter, index) => (
-                    <tr key={`${batter.name}-${index}`} className="border-b last:border-0">
-                      <th scope="row" className="max-w-[130px] truncate px-3 py-2 text-left font-medium">
-                        <span className="flex items-center gap-1.5">
+              ) : (
+                match.batters.map((batter, index) => (
+                  <tr key={`${batter.name}-${index}`}>
+                    <th
+                      scope="row"
+                      className="max-w-[180px] truncate py-1.5 text-left text-[15px] font-semibold"
+                    >
+                      {batter.name}
+                      {batter.onStrike ? (
+                        <>
                           <span
-                            className={`h-1.5 w-1.5 rounded-full ${batter.onStrike ? "bg-live" : "bg-transparent"}`}
+                            className="ml-1 inline-block h-1.5 w-1.5 -translate-y-1 rounded-full bg-primary align-middle"
                             aria-hidden="true"
                           />
-                          <span className="truncate">{batter.name}</span>
-                          {batter.onStrike ? <span className="sr-only"> (on strike)</span> : null}
-                        </span>
-                      </th>
-                      <td className="px-2 py-2 text-right font-semibold tabular-nums">{batter.runs}</td>
-                      <td className="px-2 py-2 text-right tabular-nums text-muted-foreground">
-                        {batter.balls}
-                      </td>
-                      <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">
-                        {batter.balls === 0 ? "–" : ((batter.runs / batter.balls) * 100).toFixed(1)}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                          <span className="sr-only"> (on strike)</span>
+                        </>
+                      ) : null}
+                    </th>
+                    <td className="py-1.5 text-right text-sm font-semibold tabular-nums">
+                      {batter.runs}
+                    </td>
+                    <td className="py-1.5 text-right text-sm tabular-nums text-muted-foreground">
+                      {batter.balls}
+                    </td>
+                    <td className="py-1.5 text-right text-sm tabular-nums text-muted-foreground">
+                      {batter.balls === 0 ? "–" : ((batter.runs / batter.balls) * 100).toFixed(1)}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+
+          <table className="mt-4 w-full text-sm">
+            <caption className="sr-only">Bowler</caption>
+            <colgroup>
+              <col />
+              <col className="w-14" />
+              <col className="w-12" />
+              <col className="w-14" />
+            </colgroup>
+            <thead>
+              <tr className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                <th scope="col" className="pb-2 text-left font-medium">
+                  Bowler
+                </th>
+                <th scope="col" className="pb-2 text-right font-medium">
+                  O
+                </th>
+                <th scope="col" className="pb-2 text-right font-medium">
+                  R-W
+                </th>
+                <th scope="col" className="pb-2 text-right font-medium">
+                  Econ
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {match.bowler ? (
+                <tr>
+                  <th
+                    scope="row"
+                    className="max-w-[180px] truncate py-1.5 text-left text-[15px] font-semibold"
+                  >
+                    {match.bowler.name}
+                  </th>
+                  <td className="py-1.5 text-right text-sm tabular-nums text-muted-foreground">
+                    {match.bowler.overs}
+                  </td>
+                  <td className="py-1.5 text-right text-sm font-semibold tabular-nums">
+                    {match.bowler.runsConceded}-{match.bowler.wickets}
+                  </td>
+                  <td className="py-1.5 text-right text-sm tabular-nums text-muted-foreground">
+                    {economy}
+                  </td>
+                </tr>
+              ) : (
+                <tr>
+                  <td colSpan={4} className="py-1.5 text-muted-foreground">
+                    No active bowler
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="border-t px-6 py-5 md:border-l md:border-t-0">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+              This over <span className="text-foreground/60">· {overNumber}</span>
+            </p>
+            <p className="text-[13px] text-muted-foreground">{runsThisOver} runs</p>
           </div>
 
-          <div className="rounded-lg border bg-background/60 px-3 py-3">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-              Bowling
+          {match.currentOverBalls.length === 0 ? (
+            <p className="mt-4 text-xs text-muted-foreground">
+              {ballsBowled > 0 ? "Bowler is getting ready…" : "New over"}
             </p>
-            {match.bowler ? (
-              <div className="mt-1.5 flex items-center justify-between gap-3">
-                <p className="truncate text-sm font-medium">{match.bowler.name}</p>
-                <p className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                  {match.bowler.overs}–{match.bowler.runsConceded}–{match.bowler.wickets}
-                  {match.bowler.overs !== "0.0"
-                    ? ` · Econ ${(
-                        match.bowler.runsConceded / (oversToBalls(match.bowler.overs) / 6)
-                      ).toFixed(2)}`
-                    : ""}
-                </p>
-              </div>
-            ) : (
-              <p className="mt-1.5 text-sm text-muted-foreground">No active bowler</p>
-            )}
-          </div>
+          ) : (
+            <div className="mt-4 flex flex-wrap gap-5" aria-label="Balls in the current over">
+              {match.currentOverBalls.map((ball, index) => {
+                const isLatest = index === match.currentOverBalls.length - 1;
+                return (
+                  <span
+                    key={`${index}-${ball}`}
+                    className={`flex h-[34px] w-[34px] items-center justify-center rounded-full text-[13px] font-semibold ${
+                      isLatest
+                        ? "border-2 border-primary bg-white text-primary"
+                        : BALL_STYLES[ball]
+                    }`}
+                  >
+                    {ball}
+                  </span>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </Card>
   );
 }
 
-export function LiveScorecard({
-  initialMatch,
-  logoUrl,
-}: {
-  initialMatch: MatchScore | null;
-  logoUrl?: string | null;
-}) {
+export function LiveScorecard({ initialMatch }: { initialMatch: MatchScore | null }) {
   const { match, status } = useLiveMatch(initialMatch);
 
   if (!match) {
@@ -246,7 +310,7 @@ export function LiveScorecard({
     );
   }
 
-  return <Scorecard match={match} status={status} logoUrl={logoUrl} />;
+  return <Scorecard match={match} status={status} />;
 }
 
 export function LiveScorecardSkeleton() {

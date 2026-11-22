@@ -110,14 +110,7 @@ export function DashboardBody({
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
       <div className="min-w-0 space-y-7">
         <section aria-label="Live match scorecard">
-          <LiveScorecard
-            initialMatch={initialMatch}
-            logoUrl={
-              initialMatch
-                ? teams.find((team) => team.short === initialMatch.battingTeam.short)?.logoUrl
-                : undefined
-            }
-          />
+          <LiveScorecard initialMatch={initialMatch} />
         </section>
 
         <MyTeams

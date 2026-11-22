@@ -31,6 +31,7 @@ export function createMatchState(params: {
 }): MatchScore {
   const totalOvers = params.totalOvers ?? 20;
   const names = params.squads?.[params.battingTeam.short] ?? params.batterNames;
+  const bowlingSquad = params.squads?.[params.bowlingTeam.short] ?? [];
   const batterName1 = names?.[0] || `${params.battingTeam.short} Batter 1`;
   const batterName2 = names?.[1] || `${params.battingTeam.short} Batter 2`;
   return {
@@ -47,7 +48,7 @@ export function createMatchState(params: {
       { name: batterName2, runs: 0, balls: 0, onStrike: false },
     ],
     bowler: {
-      name: `${params.bowlingTeam.short} Bowler 1`,
+      name: bowlingSquad[0] || `${params.bowlingTeam.short} Bowler 1`,
       overs: "0.0",
       runsConceded: 0,
       wickets: 0,

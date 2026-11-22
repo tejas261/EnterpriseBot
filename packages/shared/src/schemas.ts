@@ -155,9 +155,9 @@ export const matchScoreSchema = z.object({
   currentOverBalls: z.array(z.enum(BALL_RESULTS)).max(12),
   battersUsed: z.number().int().min(0).max(11),
   updatedAt: z.string(),
-  batterNames: z.array(z.string()).optional(),
+  batterNames: z.array(z.string()).nullish(),
   /** Batting orders keyed by team short, so both innings use real player names. */
-  squads: z.partialRecord(teamShortSchema, z.array(z.string())).optional(),
+  squads: z.partialRecord(teamShortSchema, z.array(z.string())).nullish(),
 });
 
 export type MatchScore = z.infer<typeof matchScoreSchema>;
