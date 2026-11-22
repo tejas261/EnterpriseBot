@@ -1,0 +1,44 @@
+{
+  "name": "ipl-live",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n web,realtime -c blue,magenta \"npm:dev:web\" \"npm:dev:realtime\"",
+    "dev:web": "npm run dev -w apps/web",
+    "dev:realtime": "npm run dev -w apps/realtime",
+    "build": "npm run build -w apps/web",
+    "start": "concurrently -n web,realtime -c blue,magenta \"npm:start:web\" \"npm:start:realtime\"",
+    "start:web": "npm run start -w apps/web",
+    "start:realtime": "npm run start -w apps/realtime",
+    "lint": "eslint .",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:e2e": "playwright test",
+    "db:up": "docker compose up -d --wait mongo && docker compose run --rm mongo-init",
+    "db:init": "tsx scripts/init-indexes.ts",
+    "db:seed": "tsx scripts/seed.ts",
+    "db:create-admin": "tsx scripts/create-admin.ts",
+    "simulator": "tsx scripts/simulate-match.ts",
+    "archive": "bash scripts/archive.sh",
+    "db:down": "docker compose down"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.1",
+    "@playwright/test": "^1.58.2",
+    "@types/node": "^24.10.1",
+    "concurrently": "^9.2.1",
+    "dotenv": "^17.2.3",
+    "eslint": "^9.39.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  },
+  "engines": {
+    "node": ">=20.9.0"
+  }
+}

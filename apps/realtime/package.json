@@ -1,0 +1,27 @@
+{
+  "name": "@ipl/realtime",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ipl/shared": "*",
+    "dotenv": "^17.2.3",
+    "jsonwebtoken": "^9.0.3",
+    "mongodb": "^7.9.1",
+    "ws": "^8.19.0",
+    "zod": "^4.3.6",
+    "bson": "^7.3.4"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^24.10.1",
+    "@types/ws": "^8.18.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

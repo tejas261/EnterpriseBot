@@ -1,0 +1,18 @@
+{
+  "datasetName": "IPL 2026 seed dataset",
+  "season": 2026,
+  "generatedFor": "IPL Live assignment demo",
+  "notes": [
+    "Team win/loss/points/NRR values are the 2026 league-stage table, not live values.",
+    "Titles are cumulative IPL titles through the 2026 season.",
+    "Squads are a 2026 season roster snapshot. Squad lists can change due to replacements, withdrawals and later announcements; verify before presenting as a current live roster.",
+    "The assignment's required team fields are present. Additional fields include season, matchesPlayed, noResults and netRunRate.",
+    "Do not treat the demo scorecard as an official live match."
+  ],
+  "sources": [
+    "BBC Sport IPL 2026 squads, updated 27 March 2026: https://www.bbc.co.uk/sport/cricket/articles/cp891x46p65o",
+    "Cricbuzz IPL 2026 points table: https://www.cricbuzz.com/cricket-series/9241/indian-premier-league-2026/points-table",
+    "Channel News Asia IPL 2026 team details: https://www.channelnewsasia.com/sport/ipl-2026-dates-format-fixtures-and-team-details-6018706",
+    "IPL 2026 franchise home venues and leadership cross-check: https://www.ipl.com/cricket/news/ipl-2026-complete-list-of-head-coaches-captains-amp-owners-of-all-10-teams/"
+  ]
+}

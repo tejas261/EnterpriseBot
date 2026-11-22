@@ -1,0 +1,27 @@
+node_modules/
+.next/
+out/
+dist/
+coverage/
+playwright-report/
+test-results/
+.env
+.env.local
+.env.*.local
+*.log
+*.zip
+*.tsbuildinfo
+.DS_Store
+
+# Tests and test tooling
+tests/
+vitest.config.ts
+
+# Agent/tooling artifacts
+AGENTS.md
+CLAUDE.md
+OPENCODE.md
+OPENCODE_*.md
+IMPLEMENTATION_STATUS.md
+MANUAL_TESTING.md
+CHECKLIST.md
